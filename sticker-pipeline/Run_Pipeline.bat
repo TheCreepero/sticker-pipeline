@@ -1,4 +1,4 @@
 @echo off
 cd /d "%~dp0"
-python mixed_sheet.py
+python main.py
 pause
