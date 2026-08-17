@@ -9,7 +9,7 @@ from PIL import Image
 from src.grid_builder import build_repeating_sheet, build_mixed_sheet
 from src.homography import warp_sticker_to_page
 from src.image_ops import build_physical_sheet, add_drop_shadow, create_dot_grid_background
-from src.metadata import extract_clean_name, build_seo_metadata, save_csv, generate_unified_html, load_existing_metadata
+from src.metadata import extract_clean_name, build_seo_metadata, save_csv, generate_unified_html, load_existing_metadata, load_seo_profiles
 
 
 def load_templates(config_path: str = "config/templates.json") -> dict:
@@ -88,6 +88,7 @@ def run_pipeline(
     cols: int = 3,
     padding: int = 320,
     fill_ratio: float = 0.85,
+    seo_profile: str = "Minimalist Bujo",
     log_callback=None
 ):
     def log(msg):
@@ -113,9 +114,9 @@ def run_pipeline(
     csv_rows, dashboard_items = load_existing_metadata(csv_path)
     item_id = len(dashboard_items) + 1
     templates = load_templates()
+    seo_profiles = load_seo_profiles()
 
-    log(f"--- Starting pipeline (Grid: {rows}x{cols}) ---")
-
+    log(f"--- Starting pipeline (Profile: '{seo_profile}', Grid: {rows}x{cols}) ---")
     processed_any = False
 
     # 1. Process Repeating Single Sheets
@@ -145,7 +146,7 @@ def run_pipeline(
                 adv_pins = generate_advanced_pin(sheet, pins_adv_dir, base_name, templates, log)
                 adv_pin_paths = [f"pins_advanced/{p}" for p in adv_pins]
                 
-            meta = build_seo_metadata([clean_name], is_mixed=False)
+            meta = build_seo_metadata([clean_name], is_mixed=False, profile_name=seo_profile, profiles=seo_profiles)
 
             csv_rows.append([
                 sheet_saved_path, meta["rb_title"], meta["rb_ptag"], meta["rb_tags"], meta["rb_desc"],
@@ -191,7 +192,7 @@ def run_pipeline(
                 adv_pins = generate_advanced_pin(sheet, pins_adv_dir, base_name, templates, log)
                 adv_pin_paths = [f"pins_advanced/{p}" for p in adv_pins]
                 
-            meta = build_seo_metadata(names, is_mixed=True)
+            meta = build_seo_metadata(names, is_mixed=True, profile_name=seo_profile, profiles=seo_profiles)
 
             csv_rows.append([
                 sheet_saved_path, meta["rb_title"], meta["rb_ptag"], meta["rb_tags"], meta["rb_desc"],
@@ -221,6 +222,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--rows", type=int, default=3)
     parser.add_argument("--cols", type=int, default=3)
+    parser.add_argument("--profile", type=str, default="Minimalist Bujo")
     args = parser.parse_args()
     
-    run_pipeline(rows=args.rows, cols=args.cols)
+    run_pipeline(rows=args.rows, cols=args.cols, seo_profile=args.profile)

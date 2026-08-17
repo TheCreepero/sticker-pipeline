@@ -1,7 +1,40 @@
 import csv
+import json
 import os
 import re
+import urllib.parse
 from typing import Dict, List, Tuple
+
+
+DEFAULT_PROFILES = {
+    "Minimalist Bujo": {
+        "rb_title_single": "Minimalist {name} Bullet Journal Sticker Sheet",
+        "rb_title_mixed": "Minimalist {display_title} Bullet Journal Sticker Pack",
+        "rb_ptag": "{first_name} planner sticker",
+        "rb_tags_core": [
+            "bujo typography", "functional planner sticker", "bullet journal aesthetic",
+            "habit tracker sticker", "minimalist aesthetic sticker", "black and white sticker",
+            "stationery addict"
+        ],
+        "rb_desc_single": "Organize your routines with this minimalist black and white {name_lower} sticker sheet. Perfect for habit trackers, weekly spreads, and bullet journal margins. Choose the matte finish for a seamless look.",
+        "rb_desc_mixed": "Organize your routines with this minimalist functional sticker pack featuring {sample_names} and more. Perfect for habit trackers, weekly spreads, and bullet journal layouts. Choose the matte finish for a seamless look.",
+        "pin_title_single": "Minimalist {name} Bullet Journal Sticker Sheet | Aesthetic Bujo Deco",
+        "pin_title_mixed": "Minimalist {display_title} Sticker Pack | Aesthetic Bujo Deco",
+        "pin_desc_single": "Keep your weekly spreads, reading logs, and habit trackers organized with this minimalist {name_lower} sticker pack. Printed on clean matte paper. #bulletjournal #bujoinspo #plannerstickers #studygram #functionalplanning #{hashtag}sticker",
+        "pin_desc_mixed": "Keep your spreads and habit trackers organized with this minimalist {display_title} sticker pack. Designed for bullet journals and planners. #bulletjournal #bujoinspo #plannerstickers #studygram #functionalplanning #{hashtag}sticker"
+    }
+}
+
+
+def load_seo_profiles(config_path: str = "config/seo_profiles.json") -> Dict[str, dict]:
+    """Loads custom SEO profile definitions from JSON with fallback."""
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return DEFAULT_PROFILES
 
 
 def extract_clean_name(filename: str) -> str:
@@ -13,57 +46,63 @@ def extract_clean_name(filename: str) -> str:
     return display_name if display_name else base.title()
 
 
-def build_seo_metadata(names: List[str], is_mixed: bool = False) -> Dict[str, str]:
-    """Generates optimized listings for Redbubble and Pinterest."""
+def build_seo_metadata(
+    names: List[str], 
+    is_mixed: bool = False, 
+    profile_name: str = "Minimalist Bujo",
+    profiles: dict = None
+) -> Dict[str, str]:
+    """Generates SEO metadata mapped through the selected thematic profile template."""
+    if profiles is None:
+        profiles = load_seo_profiles()
+
+    profile = profiles.get(profile_name, list(profiles.values())[0] if profiles else DEFAULT_PROFILES["Minimalist Bujo"])
+
+    first_name = names[0].lower()
+    hashtag = first_name.replace(" ", "")
+    sample_names = ", ".join(n.lower() for n in names[:4])
+
     if is_mixed:
         display_title = ", ".join(names[:2])
         if len(names) > 2:
             display_title += f" & {names[2]}"
 
-        rb_title = f"Minimalist {display_title} Bullet Journal Sticker Pack"
-        rb_ptag = f"{names[0].lower()} planner sticker"
-        specific_tags = [f"{name.lower()} sticker" for name in names[:4]]
-        core_tags = [
-            "bujo typography", "functional planner sticker", "bullet journal aesthetic",
-            "habit tracker sticker", "minimalist aesthetic sticker", "black and white sticker",
-            "stationery addict"
-        ]
-        rb_tags = ", ".join(specific_tags + core_tags)
-        rb_desc = (
-            f"Organize your routines with this minimalist functional sticker pack featuring "
-            f"{', '.join(name.lower() for name in names[:4])} and more. Perfect for habit trackers, "
-            f"weekly spreads, and bullet journal layouts. Choose the matte finish for a seamless look."
-        )
+        template_ctx = {
+            "display_title": display_title,
+            "first_name": first_name,
+            "sample_names": sample_names,
+            "hashtag": hashtag
+        }
 
-        pin_title = f"Minimalist {display_title} Sticker Pack | Aesthetic Bujo Deco"
-        hashtag_tag = names[0].lower().replace(" ", "")
-        pin_desc = (
-            f"Keep your spreads and habit trackers organized with this minimalist "
-            f"{display_title} sticker pack. Designed for bullet journals and planners. "
-            f"#bulletjournal #bujoinspo #plannerstickers #studygram #functionalplanning #{hashtag_tag}sticker"
-        )
+        rb_title = profile.get("rb_title_mixed", "Sticker Pack {display_title}").format(**template_ctx)
+        rb_ptag = profile.get("rb_ptag", "{first_name} planner sticker").format(**template_ctx)
+
+        specific_tags = [f"{name.lower()} sticker" for name in names[:4]]
+        core_tags = profile.get("rb_tags_core", [])
+        rb_tags = ", ".join(specific_tags + core_tags)
+
+        rb_desc = profile.get("rb_desc_mixed", "Sticker pack featuring {sample_names}.").format(**template_ctx)
+        pin_title = profile.get("pin_title_mixed", "{display_title} Sticker Pack").format(**template_ctx)
+        pin_desc = profile.get("pin_desc_mixed", "Sticker pack {display_title} #{hashtag}sticker").format(**template_ctx)
     else:
         name = names[0]
-        rb_title = f"Minimalist {name} Bullet Journal Sticker Sheet"
-        rb_ptag = f"{name.lower()} planner sticker"
-        rb_tags = (
-            f"{name.lower()} sticker, {name.lower()} planner sticker, "
-            f"bujo {name.lower()}, functional planner sticker, bullet journal aesthetic, "
-            f"habit tracker sticker, minimalist aesthetic sticker, black and white sticker, stationery addict"
-        )
-        rb_desc = (
-            f"Organize your routines with this minimalist black and white {name.lower()} sticker sheet. "
-            f"Perfect for habit trackers, weekly spreads, and bullet journal margins. "
-            f"Choose the matte finish for a seamless look."
-        )
+        template_ctx = {
+            "name": name,
+            "name_lower": name.lower(),
+            "first_name": first_name,
+            "hashtag": hashtag
+        }
 
-        pin_title = f"Minimalist {name} Bullet Journal Sticker Sheet | Aesthetic Bujo Deco"
-        hashtag_tag = name.lower().replace(" ", "")
-        pin_desc = (
-            f"Keep your weekly spreads, reading logs, and habit trackers organized with this minimalist "
-            f"{name.lower()} sticker pack. Printed on clean matte paper. "
-            f"#bulletjournal #bujoinspo #plannerstickers #studygram #functionalplanning #{hashtag_tag}sticker"
-        )
+        rb_title = profile.get("rb_title_single", "{name} Sticker Sheet").format(**template_ctx)
+        rb_ptag = profile.get("rb_ptag", "{first_name} planner sticker").format(**template_ctx)
+
+        specific_tags = [f"{name.lower()} sticker", f"{name.lower()} planner sticker", f"bujo {name.lower()}"]
+        core_tags = profile.get("rb_tags_core", [])
+        rb_tags = ", ".join(specific_tags + core_tags)
+
+        rb_desc = profile.get("rb_desc_single", "{name} sticker sheet.").format(**template_ctx)
+        pin_title = profile.get("pin_title_single", "{name} Sticker Sheet").format(**template_ctx)
+        pin_desc = profile.get("pin_desc_single", "{name} sticker sheet #{hashtag}sticker").format(**template_ctx)
 
     return {
         "rb_title": rb_title,
@@ -96,7 +135,6 @@ def load_existing_metadata(csv_path: str) -> Tuple[List[List[str]], List[Dict]]:
                 for idx, row in enumerate(reader):
                     if len(row) >= 9:
                         csv_rows.append(row)
-                        # Handle old formats that had a single string, or new format separated by |
                         adv_pins = row[6].split("|") if row[6] else []
                         dashboard_items.append({
                             "id": f"prev_{idx}",
@@ -123,36 +161,36 @@ def generate_unified_html(items: List[Dict], output_html: str):
     """Generates an interactive web dashboard with 3-way visual previews and copy buttons."""
     html_cards = ""
     for item in items:
-        # Generate HTML for all advanced mockups created
         adv_previews = ""
         for adv_pin in item.get("adv_pin_filepaths", []):
             if adv_pin:
+                safe_path = urllib.parse.quote(adv_pin, safe="/")
                 adv_previews += f"""
                 <div class="preview">
                     <strong>Advanced Mockup</strong>
-                    <img src="{adv_pin}" alt="Photo mockup" style="object-fit: cover;">
+                    <img src="{safe_path}" alt="Photo mockup" style="object-fit: cover;">
                     <span>{os.path.basename(adv_pin)}</span>
                 </div>
                 """
 
-        # Generate HTML for simple pin if created
         simple_preview = ""
         if item.get("simple_pin_filepath"):
+            safe_path = urllib.parse.quote(item['simple_pin_filepath'], safe="/")
             simple_preview = f"""
             <div class="preview">
                 <strong>Dot Grid Pin</strong>
-                <img src="{item['simple_pin_filepath']}" alt="Simple pin preview" style="object-fit: cover;">
+                <img src="{safe_path}" alt="Simple pin preview" style="object-fit: cover;">
                 <span>{os.path.basename(item['simple_pin_filepath'])}</span>
             </div>
             """
 
-        # Generate HTML for base sheet if created
         sheet_preview = ""
         if item.get("rb_filepath"):
+            safe_path = urllib.parse.quote(item['rb_filepath'], safe="/")
             sheet_preview = f"""
             <div class="preview">
                 <strong>Redbubble Sheet</strong>
-                <img src="{item['rb_filepath']}" alt="Sheet preview" style="object-fit: contain;">
+                <img src="{safe_path}" alt="Sheet preview" style="object-fit: contain;">
                 <span>{os.path.basename(item['rb_filepath'])}</span>
             </div>
             """

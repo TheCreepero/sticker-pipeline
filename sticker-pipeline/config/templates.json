@@ -19,5 +19,26 @@
                 2868
             ]
         ]
+    },
+    "zoomed_journal": {
+        "file": "templates/zoomed_journal.jpg",
+        "corners": [
+            [
+                1352,
+                155
+            ],
+            [
+                2352,
+                161
+            ],
+            [
+                2346,
+                1879
+            ],
+            [
+                1358,
+                1903
+            ]
+        ]
     }
 }
