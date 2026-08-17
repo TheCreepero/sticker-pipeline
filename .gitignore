@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+source/
+output/
+*.png
+*.jpg
+!templates/*.jpg
+*.csv
+*.html
+!templates/*.html
