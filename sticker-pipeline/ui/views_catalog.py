@@ -36,11 +36,19 @@ class CatalogView(ctk.CTkFrame):
 
         sheets_btn = ctk.CTkButton(
             btn_container,
-            text="📁 Open Sticker Sheets Folder",
+            text="📁 Open Single Sticker Sheets Folder",
             height=36,
             command=lambda: self.open_folder("exports/sheets")
         )
         sheets_btn.pack(fill="x", padx=15, pady=6)
+
+        mixed_sheets_btn = ctk.CTkButton(
+            btn_container,
+            text="📁 Open Mixed Sticker Sheets Folder",
+            height=36,
+            command=lambda: self.open_folder("exports/mixed_sheets")
+        )
+        mixed_sheets_btn.pack(fill="x", padx=15, pady=6)
 
         pins_simple_btn = ctk.CTkButton(
             btn_container,

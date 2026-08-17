@@ -1,7 +1,7 @@
 import csv
 import os
 import re
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 
 def extract_clean_name(filename: str) -> str:
@@ -82,17 +82,52 @@ def save_csv(data_rows: List[List[str]], output_path: str):
         writer.writerows(data_rows)
 
 
+def load_existing_metadata(csv_path: str) -> Tuple[List[List[str]], List[Dict]]:
+    """Loads existing CSV data to prevent overwriting the dashboard on new runs."""
+    csv_rows = []
+    dashboard_items = []
+    
+    if os.path.exists(csv_path):
+        with open(csv_path, mode="r", encoding="utf-8-sig") as f:
+            reader = csv.reader(f, delimiter=";")
+            headers = next(reader, None)
+            if headers:
+                csv_rows.append(headers)
+                for idx, row in enumerate(reader):
+                    if len(row) >= 9:
+                        csv_rows.append(row)
+                        dashboard_items.append({
+                            "id": f"prev_{idx}",
+                            "rb_filepath": row[0],
+                            "rb_title": row[1],
+                            "rb_ptag": row[2],
+                            "rb_tags": row[3],
+                            "rb_desc": row[4],
+                            "simple_pin_filepath": row[5],
+                            "adv_pin_filepath": row[6],
+                            "pin_title": row[7],
+                            "pin_desc": row[8]
+                        })
+    else:
+        csv_rows = [[
+            "RB_Filepath", "RB_Title", "RB_Primary_Tag", "RB_Tags", "RB_Description",
+            "Simple_Pin_Filepath", "Advanced_Pin_Filepath", "Pin_Title", "Pin_Description"
+        ]]
+        
+    return csv_rows, dashboard_items
+
+
 def generate_unified_html(items: List[Dict], output_html: str):
     """Generates an interactive web dashboard with 3-way visual previews and copy buttons."""
     html_cards = ""
     for item in items:
         adv_preview = ""
-        if item.get("adv_pin_filename"):
+        if item.get("adv_pin_filepath"):
             adv_preview = f"""
             <div class="preview">
                 <strong>Advanced Mockup</strong>
-                <img src="pins_advanced/{item['adv_pin_filename']}" alt="Photo mockup" style="object-fit: cover;">
-                <span>{item['adv_pin_filename']}</span>
+                <img src="{item['adv_pin_filepath']}" alt="Photo mockup" style="object-fit: cover;">
+                <span>{os.path.basename(item['adv_pin_filepath'])}</span>
             </div>
             """
 
@@ -101,13 +136,13 @@ def generate_unified_html(items: List[Dict], output_html: str):
             <div class="preview-section">
                 <div class="preview">
                     <strong>Redbubble Sheet</strong>
-                    <img src="sheets/{item['rb_filename']}" alt="Sheet preview" style="object-fit: contain;">
-                    <span>{item['rb_filename']}</span>
+                    <img src="{item['rb_filepath']}" alt="Sheet preview" style="object-fit: contain;">
+                    <span>{os.path.basename(item['rb_filepath'])}</span>
                 </div>
                 <div class="preview">
                     <strong>Dot Grid Pin</strong>
-                    <img src="pins_simple/{item['simple_pin_filename']}" alt="Simple pin preview" style="object-fit: cover;">
-                    <span>{item['simple_pin_filename']}</span>
+                    <img src="{item['simple_pin_filepath']}" alt="Simple pin preview" style="object-fit: cover;">
+                    <span>{os.path.basename(item['simple_pin_filepath'])}</span>
                 </div>
                 {adv_preview}
             </div>
