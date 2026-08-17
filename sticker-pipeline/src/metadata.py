@@ -2,6 +2,7 @@ import csv
 import json
 import os
 import re
+import urllib.parse
 from typing import Dict, List, Tuple
 
 
@@ -163,30 +164,33 @@ def generate_unified_html(items: List[Dict], output_html: str):
         adv_previews = ""
         for adv_pin in item.get("adv_pin_filepaths", []):
             if adv_pin:
+                safe_path = urllib.parse.quote(adv_pin, safe="/")
                 adv_previews += f"""
                 <div class="preview">
                     <strong>Advanced Mockup</strong>
-                    <img src="{adv_pin}" alt="Photo mockup" style="object-fit: cover;">
+                    <img src="{safe_path}" alt="Photo mockup" style="object-fit: cover;">
                     <span>{os.path.basename(adv_pin)}</span>
                 </div>
                 """
 
         simple_preview = ""
         if item.get("simple_pin_filepath"):
+            safe_path = urllib.parse.quote(item['simple_pin_filepath'], safe="/")
             simple_preview = f"""
             <div class="preview">
                 <strong>Dot Grid Pin</strong>
-                <img src="{item['simple_pin_filepath']}" alt="Simple pin preview" style="object-fit: cover;">
+                <img src="{safe_path}" alt="Simple pin preview" style="object-fit: cover;">
                 <span>{os.path.basename(item['simple_pin_filepath'])}</span>
             </div>
             """
 
         sheet_preview = ""
         if item.get("rb_filepath"):
+            safe_path = urllib.parse.quote(item['rb_filepath'], safe="/")
             sheet_preview = f"""
             <div class="preview">
                 <strong>Redbubble Sheet</strong>
-                <img src="{item['rb_filepath']}" alt="Sheet preview" style="object-fit: contain;">
+                <img src="{safe_path}" alt="Sheet preview" style="object-fit: contain;">
                 <span>{os.path.basename(item['rb_filepath'])}</span>
             </div>
             """

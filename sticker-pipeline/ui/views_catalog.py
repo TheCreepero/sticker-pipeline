@@ -1,6 +1,7 @@
 import os
 import subprocess
 import webbrowser
+import pathlib
 import customtkinter as ctk
 
 
@@ -69,7 +70,9 @@ class CatalogView(ctk.CTkFrame):
     def open_html_dashboard(self):
         path = os.path.abspath("exports/listings.html")
         if os.path.exists(path):
-            webbrowser.open(f"file://{path}")
+            # Formats the Windows path into a strict file:/// URI
+            file_uri = pathlib.Path(path).as_uri()
+            webbrowser.open(file_uri)
 
     def open_folder(self, folder_path):
         abs_path = os.path.abspath(folder_path)
