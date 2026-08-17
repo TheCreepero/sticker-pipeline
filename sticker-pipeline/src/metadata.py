@@ -96,6 +96,8 @@ def load_existing_metadata(csv_path: str) -> Tuple[List[List[str]], List[Dict]]:
                 for idx, row in enumerate(reader):
                     if len(row) >= 9:
                         csv_rows.append(row)
+                        # Handle old formats that had a single string, or new format separated by |
+                        adv_pins = row[6].split("|") if row[6] else []
                         dashboard_items.append({
                             "id": f"prev_{idx}",
                             "rb_filepath": row[0],
@@ -104,14 +106,14 @@ def load_existing_metadata(csv_path: str) -> Tuple[List[List[str]], List[Dict]]:
                             "rb_tags": row[3],
                             "rb_desc": row[4],
                             "simple_pin_filepath": row[5],
-                            "adv_pin_filepath": row[6],
+                            "adv_pin_filepaths": adv_pins,
                             "pin_title": row[7],
                             "pin_desc": row[8]
                         })
     else:
         csv_rows = [[
             "RB_Filepath", "RB_Title", "RB_Primary_Tag", "RB_Tags", "RB_Description",
-            "Simple_Pin_Filepath", "Advanced_Pin_Filepath", "Pin_Title", "Pin_Description"
+            "Simple_Pin_Filepath", "Advanced_Pin_Filepaths", "Pin_Title", "Pin_Description"
         ]]
         
     return csv_rows, dashboard_items
@@ -121,30 +123,46 @@ def generate_unified_html(items: List[Dict], output_html: str):
     """Generates an interactive web dashboard with 3-way visual previews and copy buttons."""
     html_cards = ""
     for item in items:
-        adv_preview = ""
-        if item.get("adv_pin_filepath"):
-            adv_preview = f"""
+        # Generate HTML for all advanced mockups created
+        adv_previews = ""
+        for adv_pin in item.get("adv_pin_filepaths", []):
+            if adv_pin:
+                adv_previews += f"""
+                <div class="preview">
+                    <strong>Advanced Mockup</strong>
+                    <img src="{adv_pin}" alt="Photo mockup" style="object-fit: cover;">
+                    <span>{os.path.basename(adv_pin)}</span>
+                </div>
+                """
+
+        # Generate HTML for simple pin if created
+        simple_preview = ""
+        if item.get("simple_pin_filepath"):
+            simple_preview = f"""
             <div class="preview">
-                <strong>Advanced Mockup</strong>
-                <img src="{item['adv_pin_filepath']}" alt="Photo mockup" style="object-fit: cover;">
-                <span>{os.path.basename(item['adv_pin_filepath'])}</span>
+                <strong>Dot Grid Pin</strong>
+                <img src="{item['simple_pin_filepath']}" alt="Simple pin preview" style="object-fit: cover;">
+                <span>{os.path.basename(item['simple_pin_filepath'])}</span>
+            </div>
+            """
+
+        # Generate HTML for base sheet if created
+        sheet_preview = ""
+        if item.get("rb_filepath"):
+            sheet_preview = f"""
+            <div class="preview">
+                <strong>Redbubble Sheet</strong>
+                <img src="{item['rb_filepath']}" alt="Sheet preview" style="object-fit: contain;">
+                <span>{os.path.basename(item['rb_filepath'])}</span>
             </div>
             """
 
         html_cards += f"""
         <div class="card">
             <div class="preview-section">
-                <div class="preview">
-                    <strong>Redbubble Sheet</strong>
-                    <img src="{item['rb_filepath']}" alt="Sheet preview" style="object-fit: contain;">
-                    <span>{os.path.basename(item['rb_filepath'])}</span>
-                </div>
-                <div class="preview">
-                    <strong>Dot Grid Pin</strong>
-                    <img src="{item['simple_pin_filepath']}" alt="Simple pin preview" style="object-fit: cover;">
-                    <span>{os.path.basename(item['simple_pin_filepath'])}</span>
-                </div>
-                {adv_preview}
+                {sheet_preview}
+                {simple_preview}
+                {adv_previews}
             </div>
             
             <div class="metadata-section">

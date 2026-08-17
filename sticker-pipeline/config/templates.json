@@ -1,22 +1,22 @@
 {
-    "simplistic_desk": {
-        "file": "templates/simplistic_desk.jpg",
+    "simplistic_desk2": {
+        "file": "templates/simplistic_desk2.jpg",
         "corners": [
             [
-                2171,
-                1406
+                2047,
+                1226
             ],
             [
-                2813,
-                1413
+                2964,
+                1247
             ],
             [
-                2826,
-                2502
+                2985,
+                2836
             ],
             [
-                2177,
-                2502
+                2025,
+                2868
             ]
         ]
     }
