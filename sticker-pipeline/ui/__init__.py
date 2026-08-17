@@ -1,0 +1,1 @@
+"""UI module for Sticker Studio desktop application."""
