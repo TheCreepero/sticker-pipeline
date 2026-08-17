@@ -1,11 +1,23 @@
 {
-  "desk_mockup": {
-    "file": "templates/desk_mockup.jpg",
-    "corners": [
-      [2016, 1208],
-      [3009, 1181],
-      [3023, 2870],
-      [2009, 2908]
-    ]
-  }
+    "simplistic_desk": {
+        "file": "templates/simplistic_desk.jpg",
+        "corners": [
+            [
+                2171,
+                1406
+            ],
+            [
+                2813,
+                1413
+            ],
+            [
+                2826,
+                2502
+            ],
+            [
+                2177,
+                2502
+            ]
+        ]
+    }
 }
