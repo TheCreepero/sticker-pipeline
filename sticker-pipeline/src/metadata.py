@@ -83,22 +83,33 @@ def save_csv(data_rows: List[List[str]], output_path: str):
 
 
 def generate_unified_html(items: List[Dict], output_html: str):
-    """Generates an interactive web dashboard with one-click copy buttons."""
+    """Generates an interactive web dashboard with 3-way visual previews and copy buttons."""
     html_cards = ""
     for item in items:
+        adv_preview = ""
+        if item.get("adv_pin_filename"):
+            adv_preview = f"""
+            <div class="preview">
+                <strong>Advanced Mockup</strong>
+                <img src="pins_advanced/{item['adv_pin_filename']}" alt="Photo mockup" style="object-fit: cover;">
+                <span>{item['adv_pin_filename']}</span>
+            </div>
+            """
+
         html_cards += f"""
         <div class="card">
             <div class="preview-section">
                 <div class="preview">
                     <strong>Redbubble Sheet</strong>
-                    <img src="{item['rb_filename']}" alt="Sheet preview" style="object-fit: contain;">
+                    <img src="sheets/{item['rb_filename']}" alt="Sheet preview" style="object-fit: contain;">
                     <span>{item['rb_filename']}</span>
                 </div>
                 <div class="preview">
-                    <strong>Pinterest Pin</strong>
-                    <img src="{item['pin_filename']}" alt="Pin preview" style="object-fit: cover;">
-                    <span>{item['pin_filename']}</span>
+                    <strong>Dot Grid Pin</strong>
+                    <img src="pins_simple/{item['simple_pin_filename']}" alt="Simple pin preview" style="object-fit: cover;">
+                    <span>{item['simple_pin_filename']}</span>
                 </div>
+                {adv_preview}
             </div>
             
             <div class="metadata-section">
@@ -159,14 +170,14 @@ def generate_unified_html(items: List[Dict], output_html: str):
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Sticker Metadata Dashboard</title>
+    <title>Sticker Production Dashboard</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f5f7; margin: 0; padding: 24px; color: #172b4d; }}
         h1 {{ margin-bottom: 24px; font-size: 24px; }}
         .card {{ background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 30px; display: flex; flex-direction: column; gap: 24px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }}
-        .preview-section {{ display: flex; gap: 20px; padding-bottom: 20px; border-bottom: 1px solid #ebecf0; }}
+        .preview-section {{ display: flex; gap: 20px; padding-bottom: 20px; border-bottom: 1px solid #ebecf0; flex-wrap: wrap; }}
         .preview {{ display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 13px; color: #5e6c84; }}
-        .preview img {{ width: 180px; height: 180px; border: 1px dashed #ccc; border-radius: 6px; background: #fafafa; }}
+        .preview img {{ width: 170px; height: 230px; border: 1px dashed #ccc; border-radius: 6px; background: #fafafa; }}
         .metadata-section {{ display: flex; gap: 30px; }}
         .column {{ flex: 1; display: flex; flex-direction: column; gap: 12px; }}
         h3 {{ margin: 0 0 8px 0; font-size: 16px; color: #172b4d; }}
