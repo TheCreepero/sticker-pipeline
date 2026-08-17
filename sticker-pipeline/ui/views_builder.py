@@ -36,6 +36,20 @@ class BuilderView(ctk.CTkFrame):
         mode_seg = ctk.CTkSegmentedButton(params_frame, values=["all", "repeating", "mixed"], variable=self.mode_var)
         mode_seg.pack(fill="x", padx=15, pady=(0, 15))
 
+        # Grid Rows Slider
+        self.rows_label = ctk.CTkLabel(params_frame, text="Rows: 3")
+        self.rows_label.pack(padx=15, anchor="w")
+        self.rows_slider = ctk.CTkSlider(params_frame, from_=1, to=10, number_of_steps=9, command=self.update_rows_label)
+        self.rows_slider.set(3)
+        self.rows_slider.pack(fill="x", padx=15, pady=(0, 15))
+
+        # Grid Columns Slider
+        self.cols_label = ctk.CTkLabel(params_frame, text="Columns: 3")
+        self.cols_label.pack(padx=15, anchor="w")
+        self.cols_slider = ctk.CTkSlider(params_frame, from_=1, to=10, number_of_steps=9, command=self.update_cols_label)
+        self.cols_slider.set(3)
+        self.cols_slider.pack(fill="x", padx=15, pady=(0, 15))
+
         # Grid Padding Slider
         self.padding_label = ctk.CTkLabel(params_frame, text="Grid Padding: 320 px")
         self.padding_label.pack(padx=15, anchor="w")
@@ -72,6 +86,12 @@ class BuilderView(ctk.CTkFrame):
         self.textbox = ctk.CTkTextbox(terminal_frame, wrap="word", font=ctk.CTkFont(family="Consolas", size=12))
         self.textbox.pack(fill="both", expand=True, padx=15, pady=(0, 15))
 
+    def update_rows_label(self, val):
+        self.rows_label.configure(text=f"Rows: {int(val)}")
+
+    def update_cols_label(self, val):
+        self.cols_label.configure(text=f"Columns: {int(val)}")
+
     def update_padding_label(self, val):
         self.padding_label.configure(text=f"Grid Padding: {int(val)} px")
 
@@ -88,6 +108,8 @@ class BuilderView(ctk.CTkFrame):
 
     def run_batch_process(self):
         mode = self.mode_var.get()
+        rows = int(self.rows_slider.get())
+        cols = int(self.cols_slider.get())
         padding = int(self.padding_slider.get())
         fill_ratio = self.fill_slider.get() / 100.0
 
@@ -107,7 +129,7 @@ class BuilderView(ctk.CTkFrame):
         item_id = len(dashboard_items) + 1
         templates = load_templates()
 
-        self.append_log(f"[{datetime.now().strftime('%H:%M:%S')}] --- Starting pipeline (Mode: {mode}) ---")
+        self.append_log(f"[{datetime.now().strftime('%H:%M:%S')}] --- Starting pipeline (Mode: {mode} | Grid: {rows}x{cols}) ---")
 
         processed_any = False
 
@@ -120,7 +142,7 @@ class BuilderView(ctk.CTkFrame):
                 sheet_filename = f"{base_name}_sheet.png"
                 sheet_path = os.path.join(sheets_dir, sheet_filename)
 
-                sheet = build_repeating_sheet(img_path, padding=padding, cell_fill_ratio=fill_ratio)
+                sheet = build_repeating_sheet(img_path, rows=rows, cols=cols, padding=padding, cell_fill_ratio=fill_ratio)
                 sheet.save(sheet_path, "PNG")
 
                 simple_pin = generate_simple_pin(sheet_path, pins_simple_dir, base_name)
@@ -145,7 +167,8 @@ class BuilderView(ctk.CTkFrame):
 
         if mode in ["all", "mixed"]:
             source_files = sorted(glob.glob("source/*.png"))
-            chunks = [source_files[i:i + 6] for i in range(0, len(source_files), 6)]
+            # Chunking dynamically based on slider rows
+            chunks = [source_files[i:i + rows] for i in range(0, len(source_files), rows)]
             self.append_log(f"Found {len(source_files)} files in 'source/' ({len(chunks)} packs)")
             for chunk in chunks:
                 names = [extract_clean_name(p) for p in chunk]
@@ -154,7 +177,7 @@ class BuilderView(ctk.CTkFrame):
                 sheet_filename = f"{base_name}.png"
                 sheet_path = os.path.join(mixed_sheets_dir, sheet_filename)
 
-                sheet = build_mixed_sheet(chunk, padding=padding, cell_fill_ratio=fill_ratio)
+                sheet = build_mixed_sheet(chunk, cols=cols, max_rows=rows, padding=padding, cell_fill_ratio=fill_ratio)
                 sheet.save(sheet_path, "PNG")
 
                 simple_pin = generate_simple_pin(sheet_path, pins_simple_dir, base_name)
