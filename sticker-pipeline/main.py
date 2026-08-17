@@ -19,27 +19,15 @@ def load_templates(config_path: str = "config/templates.json") -> dict:
     return {}
 
 
-def process_pins(
+def generate_simple_pin(
     sheet_path: str,
     output_dir: str,
     base_name: str,
-    templates: dict,
     rotation_angle: float = -3.5
 ) -> str:
-    """Generates standard dot-grid or photographic mockup pins."""
+    """Generates a clean dot-grid paper mockup pin."""
     sheet = Image.open(sheet_path)
 
-    # Use photographic mockup template if available
-    if "desk_mockup" in templates and os.path.exists(templates["desk_mockup"]["file"]):
-        bg = Image.open(templates["desk_mockup"]["file"])
-        corners = templates["desk_mockup"]["corners"]
-        pin_img = warp_sticker_to_page(sheet, bg, corners, apply_multiply=True)
-        pin_filename = f"pin_{base_name}.jpg"
-        pin_path = os.path.join(output_dir, pin_filename)
-        pin_img.convert("RGB").save(pin_path, quality=95)
-        return pin_filename
-
-    # Fallback to rotated dot-grid background
     target_w = 720
     scale = target_w / sheet.width
     target_h = int(sheet.height * scale)
@@ -54,20 +42,52 @@ def process_pins(
     pos_y = (1500 - rotated.height) // 2
     pin_bg.paste(rotated, (pos_x, pos_y), mask=rotated)
 
-    pin_filename = f"pin_{base_name}.png"
+    pin_filename = f"pin_simple_{base_name}.png"
     pin_path = os.path.join(output_dir, pin_filename)
     pin_bg.convert("RGB").save(pin_path, quality=95)
     return pin_filename
 
 
+def generate_advanced_pin(
+    sheet_path: str,
+    output_dir: str,
+    base_name: str,
+    templates: dict
+) -> str:
+    """Generates a photographic 3D perspective mockup pin if templates exist."""
+    if "desk_mockup" in templates and os.path.exists(templates["desk_mockup"]["file"]):
+        sheet = Image.open(sheet_path)
+        bg = Image.open(templates["desk_mockup"]["file"])
+        corners = templates["desk_mockup"]["corners"]
+
+        pin_img = warp_sticker_to_page(sheet, bg, corners, apply_multiply=True)
+        pin_filename = f"pin_adv_{base_name}.jpg"
+        pin_path = os.path.join(output_dir, pin_filename)
+        pin_img.convert("RGB").save(pin_path, quality=95)
+        return pin_filename
+    return ""
+
+
 def run_pipeline(mode: str = "all"):
+    # Root working paths
     os.makedirs("assets", exist_ok=True)
     os.makedirs("source", exist_ok=True)
-    os.makedirs("exports", exist_ok=True)
+
+    # Subdivided export paths
+    sheets_dir = os.path.join("exports", "sheets")
+    pins_simple_dir = os.path.join("exports", "pins_simple")
+    pins_adv_dir = os.path.join("exports", "pins_advanced")
+
+    os.makedirs(sheets_dir, exist_ok=True)
+    os.makedirs(pins_simple_dir, exist_ok=True)
+    os.makedirs(pins_adv_dir, exist_ok=True)
 
     templates = load_templates()
     dashboard_items = []
-    csv_rows = [["RB_Filename", "RB_Title", "RB_Primary_Tag", "RB_Tags", "RB_Description", "Pin_Filename", "Pin_Title", "Pin_Description"]]
+    csv_rows = [[
+        "RB_Filename", "RB_Title", "RB_Primary_Tag", "RB_Tags", "RB_Description",
+        "Simple_Pin_Filename", "Advanced_Pin_Filename", "Pin_Title", "Pin_Description"
+    ]]
     item_id = 1
 
     # 1. Process Repeating Single Sheets from assets/
@@ -78,19 +98,25 @@ def run_pipeline(mode: str = "all"):
             clean_name = extract_clean_name(img_path)
             base_name = os.path.splitext(os.path.basename(img_path))[0]
             sheet_filename = f"{base_name}_sheet.png"
-            sheet_path = os.path.join("exports", sheet_filename)
+            sheet_path = os.path.join(sheets_dir, sheet_filename)
 
             sheet = build_repeating_sheet(img_path)
             sheet.save(sheet_path, "PNG")
 
-            pin_filename = process_pins(sheet_path, "exports", base_name, templates)
+            simple_pin = generate_simple_pin(sheet_path, pins_simple_dir, base_name)
+            adv_pin = generate_advanced_pin(sheet_path, pins_adv_dir, base_name, templates)
             meta = build_seo_metadata([clean_name], is_mixed=False)
 
-            csv_rows.append([sheet_filename, meta["rb_title"], meta["rb_ptag"], meta["rb_tags"], meta["rb_desc"], pin_filename, meta["pin_title"], meta["pin_desc"]])
+            csv_rows.append([
+                f"sheets/{sheet_filename}", meta["rb_title"], meta["rb_ptag"], meta["rb_tags"], meta["rb_desc"],
+                f"pins_simple/{simple_pin}", f"pins_advanced/{adv_pin}" if adv_pin else "",
+                meta["pin_title"], meta["pin_desc"]
+            ])
             dashboard_items.append({
                 "id": item_id,
                 "rb_filename": sheet_filename,
-                "pin_filename": pin_filename,
+                "simple_pin_filename": simple_pin,
+                "adv_pin_filename": adv_pin,
                 **meta
             })
             item_id += 1
@@ -104,20 +130,27 @@ def run_pipeline(mode: str = "all"):
         for chunk in chunks:
             names = [extract_clean_name(p) for p in chunk]
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
-            sheet_filename = f"mixed_pack_{timestamp}.png"
-            sheet_path = os.path.join("exports", sheet_filename)
+            base_name = f"mixed_pack_{timestamp}"
+            sheet_filename = f"{base_name}.png"
+            sheet_path = os.path.join(sheets_dir, sheet_filename)
 
             sheet = build_mixed_sheet(chunk)
             sheet.save(sheet_path, "PNG")
 
-            pin_filename = process_pins(sheet_path, "exports", f"mixed_{timestamp}", templates)
+            simple_pin = generate_simple_pin(sheet_path, pins_simple_dir, base_name)
+            adv_pin = generate_advanced_pin(sheet_path, pins_adv_dir, base_name, templates)
             meta = build_seo_metadata(names, is_mixed=True)
 
-            csv_rows.append([sheet_filename, meta["rb_title"], meta["rb_ptag"], meta["rb_tags"], meta["rb_desc"], pin_filename, meta["pin_title"], meta["pin_desc"]])
+            csv_rows.append([
+                f"sheets/{sheet_filename}", meta["rb_title"], meta["rb_ptag"], meta["rb_tags"], meta["rb_desc"],
+                f"pins_simple/{simple_pin}", f"pins_advanced/{adv_pin}" if adv_pin else "",
+                meta["pin_title"], meta["pin_desc"]
+            ])
             dashboard_items.append({
                 "id": item_id,
                 "rb_filename": sheet_filename,
-                "pin_filename": pin_filename,
+                "simple_pin_filename": simple_pin,
+                "adv_pin_filename": adv_pin,
                 **meta
             })
             item_id += 1
@@ -129,9 +162,11 @@ def run_pipeline(mode: str = "all"):
         generate_unified_html(dashboard_items, "exports/listings.html")
         print("\n==========================================")
         print("Pipeline Complete!")
-        print("  • Exports Folder: 'exports/'")
-        print("  • Visual Dashboard: 'exports/listings.html'")
-        print("  • Semicolon CSV: 'exports/listings.csv'")
+        print("  • Sheets Output:         'exports/sheets/'")
+        print("  • Simple Pins Output:    'exports/pins_simple/'")
+        print("  • Advanced Pins Output:  'exports/pins_advanced/'")
+        print("  • Dashboard:             'exports/listings.html'")
+        print("  • Semicolon CSV:         'exports/listings.csv'")
         print("==========================================")
     else:
         print("No image assets found to process in 'assets/' or 'source/'.")
