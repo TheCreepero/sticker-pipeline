@@ -6,9 +6,8 @@ import customtkinter as ctk
 from PIL import Image
 
 from src.grid_builder import build_repeating_sheet, build_mixed_sheet
-from src.homography import warp_sticker_to_page
 from src.image_ops import build_physical_sheet, add_drop_shadow, create_dot_grid_background
-from src.metadata import extract_clean_name, build_seo_metadata, save_csv, generate_unified_html
+from src.metadata import extract_clean_name, build_seo_metadata, save_csv, generate_unified_html, load_existing_metadata
 from main import load_templates, generate_simple_pin, generate_advanced_pin
 
 
@@ -93,22 +92,24 @@ class BuilderView(ctk.CTkFrame):
         fill_ratio = self.fill_slider.get() / 100.0
 
         sheets_dir = os.path.join("exports", "sheets")
+        mixed_sheets_dir = os.path.join("exports", "mixed_sheets")
         pins_simple_dir = os.path.join("exports", "pins_simple")
         pins_adv_dir = os.path.join("exports", "pins_advanced")
 
         os.makedirs(sheets_dir, exist_ok=True)
+        os.makedirs(mixed_sheets_dir, exist_ok=True)
         os.makedirs(pins_simple_dir, exist_ok=True)
         os.makedirs(pins_adv_dir, exist_ok=True)
 
+        # Load existing data to append rather than overwrite
+        csv_path = "exports/listings.csv"
+        csv_rows, dashboard_items = load_existing_metadata(csv_path)
+        item_id = len(dashboard_items) + 1
         templates = load_templates()
-        dashboard_items = []
-        csv_rows = [[
-            "RB_Filename", "RB_Title", "RB_Primary_Tag", "RB_Tags", "RB_Description",
-            "Simple_Pin_Filename", "Advanced_Pin_Filename", "Pin_Title", "Pin_Description"
-        ]]
-        item_id = 1
 
         self.append_log(f"[{datetime.now().strftime('%H:%M:%S')}] --- Starting pipeline (Mode: {mode}) ---")
+
+        processed_any = False
 
         if mode in ["all", "repeating"]:
             asset_files = sorted(glob.glob("assets/*.png"))
@@ -133,12 +134,13 @@ class BuilderView(ctk.CTkFrame):
                 ])
                 dashboard_items.append({
                     "id": item_id,
-                    "rb_filename": sheet_filename,
-                    "simple_pin_filename": simple_pin,
-                    "adv_pin_filename": adv_pin,
+                    "rb_filepath": f"sheets/{sheet_filename}",
+                    "simple_pin_filepath": f"pins_simple/{simple_pin}",
+                    "adv_pin_filepath": f"pins_advanced/{adv_pin}" if adv_pin else "",
                     **meta
                 })
                 item_id += 1
+                processed_any = True
                 self.append_log(f"  ✓ Processed: {clean_name}")
 
         if mode in ["all", "mixed"]:
@@ -150,7 +152,7 @@ class BuilderView(ctk.CTkFrame):
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
                 base_name = f"mixed_pack_{timestamp}"
                 sheet_filename = f"{base_name}.png"
-                sheet_path = os.path.join(sheets_dir, sheet_filename)
+                sheet_path = os.path.join(mixed_sheets_dir, sheet_filename)
 
                 sheet = build_mixed_sheet(chunk, padding=padding, cell_fill_ratio=fill_ratio)
                 sheet.save(sheet_path, "PNG")
@@ -160,22 +162,23 @@ class BuilderView(ctk.CTkFrame):
                 meta = build_seo_metadata(names, is_mixed=True)
 
                 csv_rows.append([
-                    f"sheets/{sheet_filename}", meta["rb_title"], meta["rb_ptag"], meta["rb_tags"], meta["rb_desc"],
+                    f"mixed_sheets/{sheet_filename}", meta["rb_title"], meta["rb_ptag"], meta["rb_tags"], meta["rb_desc"],
                     f"pins_simple/{simple_pin}", f"pins_advanced/{adv_pin}" if adv_pin else "",
                     meta["pin_title"], meta["pin_desc"]
                 ])
                 dashboard_items.append({
                     "id": item_id,
-                    "rb_filename": sheet_filename,
-                    "simple_pin_filename": simple_pin,
-                    "adv_pin_filename": adv_pin,
+                    "rb_filepath": f"mixed_sheets/{sheet_filename}",
+                    "simple_pin_filepath": f"pins_simple/{simple_pin}",
+                    "adv_pin_filepath": f"pins_advanced/{adv_pin}" if adv_pin else "",
                     **meta
                 })
                 item_id += 1
+                processed_any = True
                 self.append_log(f"  ✓ Created Mixed Sheet: {meta['rb_title']}")
 
-        if dashboard_items:
-            save_csv(csv_rows, "exports/listings.csv")
+        if processed_any or dashboard_items:
+            save_csv(csv_rows, csv_path)
             generate_unified_html(dashboard_items, "exports/listings.html")
             self.append_log(f"[{datetime.now().strftime('%H:%M:%S')}] Pipeline Complete! Saved to 'exports/'")
         else:

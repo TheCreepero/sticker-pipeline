@@ -55,16 +55,24 @@ def generate_advanced_pin(
     templates: dict
 ) -> str:
     """Generates a photographic 3D perspective mockup pin if templates exist."""
-    if "desk_mockup" in templates and os.path.exists(templates["desk_mockup"]["file"]):
-        sheet = Image.open(sheet_path)
-        bg = Image.open(templates["desk_mockup"]["file"])
-        corners = templates["desk_mockup"]["corners"]
+    
+    # Dynamically loop through all templates saved from the Calibrator
+    for template_name, template_data in templates.items():
+        if os.path.exists(template_data["file"]):
+            sheet = Image.open(sheet_path)
+            bg = Image.open(template_data["file"])
+            corners = template_data["corners"]
 
-        pin_img = warp_sticker_to_page(sheet, bg, corners, apply_multiply=True)
-        pin_filename = f"pin_adv_{base_name}.jpg"
-        pin_path = os.path.join(output_dir, pin_filename)
-        pin_img.convert("RGB").save(pin_path, quality=95)
-        return pin_filename
+            pin_img = warp_sticker_to_page(sheet, bg, corners, apply_multiply=True)
+            
+            # Inject the template name into the filename so they don't overwrite each other
+            pin_filename = f"pin_adv_{template_name}_{base_name}.jpg"
+            pin_path = os.path.join(output_dir, pin_filename)
+            pin_img.convert("RGB").save(pin_path, quality=95)
+            
+            # Return the first generated mockup's filename to display in the HTML dashboard
+            return pin_filename
+            
     return ""
 
 
