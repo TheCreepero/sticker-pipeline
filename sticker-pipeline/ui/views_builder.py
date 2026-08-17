@@ -1,6 +1,7 @@
 import threading
 import customtkinter as ctk
 from main import run_pipeline
+from src.metadata import load_seo_profiles
 
 
 class BuilderView(ctk.CTkFrame):
@@ -19,13 +20,25 @@ class BuilderView(ctk.CTkFrame):
         title_label = ctk.CTkLabel(params_frame, text="Sheet Generation Controls", font=ctk.CTkFont(size=18, weight="bold"))
         title_label.pack(pady=(15, 5), padx=15, anchor="w")
 
-        # Toggles Container
+        # 1. SEO Profile Dropdown
+        seo_frame = ctk.CTkFrame(params_frame, fg_color="transparent")
+        seo_frame.pack(fill="x", padx=15, pady=(5, 10))
+
+        ctk.CTkLabel(seo_frame, text="SEO Profile:", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(0, 2))
+        
+        profiles = load_seo_profiles()
+        profile_options = list(profiles.keys()) if profiles else ["Minimalist Bujo"]
+        self.profile_dropdown = ctk.CTkOptionMenu(seo_frame, values=profile_options)
+        self.profile_dropdown.pack(fill="x")
+        self.profile_dropdown.set(profile_options[0])
+
+        # 2. Toggles Container
         toggles_frame = ctk.CTkFrame(params_frame, fg_color="transparent")
         toggles_frame.pack(fill="x", padx=15, pady=5)
         toggles_frame.grid_columnconfigure((0, 1), weight=1)
 
         # Input Toggles
-        ctk.CTkLabel(toggles_frame, text="Inputs:", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, sticky="w", pady=(0,5))
+        ctk.CTkLabel(toggles_frame, text="Inputs:", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, sticky="w", pady=(0, 5))
         self.chk_repeating = ctk.CTkCheckBox(toggles_frame, text="Repeating ('assets/')")
         self.chk_repeating.grid(row=1, column=0, sticky="w", pady=2)
         self.chk_repeating.select()
@@ -35,7 +48,7 @@ class BuilderView(ctk.CTkFrame):
         self.chk_mixed.select()
 
         # Output Toggles
-        ctk.CTkLabel(toggles_frame, text="Outputs:", font=ctk.CTkFont(weight="bold")).grid(row=0, column=1, sticky="w", pady=(0,5))
+        ctk.CTkLabel(toggles_frame, text="Outputs:", font=ctk.CTkFont(weight="bold")).grid(row=0, column=1, sticky="w", pady=(0, 5))
         self.chk_out_sheets = ctk.CTkCheckBox(toggles_frame, text="Sticker Sheets")
         self.chk_out_sheets.grid(row=1, column=1, sticky="w", pady=2)
         self.chk_out_sheets.select()
@@ -48,7 +61,7 @@ class BuilderView(ctk.CTkFrame):
         self.chk_out_adv.grid(row=3, column=1, sticky="w", pady=2)
         self.chk_out_adv.select()
 
-        # Grid Sliders
+        # 3. Grid Sliders
         self.rows_label = ctk.CTkLabel(params_frame, text="Rows: 3")
         self.rows_label.pack(padx=15, anchor="w", pady=(10, 0))
         self.rows_slider = ctk.CTkSlider(params_frame, from_=1, to=10, number_of_steps=9, command=self.update_rows_label)
@@ -73,7 +86,7 @@ class BuilderView(ctk.CTkFrame):
         self.fill_slider.set(85)
         self.fill_slider.pack(fill="x", padx=15, pady=(0, 15))
 
-        # Action Buttons
+        # 4. Action Buttons
         self.run_btn = ctk.CTkButton(
             params_frame, text="▶ Run Generation Pipeline", font=ctk.CTkFont(size=14, weight="bold"),
             fg_color="#0052cc", hover_color="#0747a6", height=40, command=self.start_processing_thread
@@ -112,6 +125,7 @@ class BuilderView(ctk.CTkFrame):
             cols=int(self.cols_slider.get()),
             padding=int(self.padding_slider.get()),
             fill_ratio=self.fill_slider.get() / 100.0,
+            seo_profile=self.profile_dropdown.get(),
             log_callback=self.append_log
         )
         self.run_btn.configure(state="normal", text="▶ Run Generation Pipeline")

@@ -1,0 +1,82 @@
+{
+  "Minimalist Bujo": {
+    "rb_title_single": "Minimalist {name} Bullet Journal Sticker Sheet",
+    "rb_title_mixed": "Minimalist {display_title} Bullet Journal Sticker Pack",
+    "rb_ptag": "{first_name} planner sticker",
+    "rb_tags_core": [
+      "bujo typography",
+      "functional planner sticker",
+      "bullet journal aesthetic",
+      "habit tracker sticker",
+      "minimalist aesthetic sticker",
+      "black and white sticker",
+      "stationery addict"
+    ],
+    "rb_desc_single": "Organize your routines with this minimalist black and white {name_lower} sticker sheet. Perfect for habit trackers, weekly spreads, and bullet journal margins. Choose the matte finish for a seamless look.",
+    "rb_desc_mixed": "Organize your routines with this minimalist functional sticker pack featuring {sample_names} and more. Perfect for habit trackers, weekly spreads, and bullet journal layouts. Choose the matte finish for a seamless look.",
+    "pin_title_single": "Minimalist {name} Bullet Journal Sticker Sheet | Aesthetic Bujo Deco",
+    "pin_title_mixed": "Minimalist {display_title} Sticker Pack | Aesthetic Bujo Deco",
+    "pin_desc_single": "Keep your weekly spreads, reading logs, and habit trackers organized with this minimalist {name_lower} sticker pack. Printed on clean matte paper. #bulletjournal #bujoinspo #plannerstickers #studygram #functionalplanning #{hashtag}sticker",
+    "pin_desc_mixed": "Keep your spreads and habit trackers organized with this minimalist {display_title} sticker pack. Designed for bullet journals and planners. #bulletjournal #bujoinspo #plannerstickers #studygram #functionalplanning #{hashtag}sticker"
+  },
+  "Student & Academic": {
+    "rb_title_single": "Academic Study {name} Planner Sticker Sheet",
+    "rb_title_mixed": "Student Life & Study {display_title} Sticker Pack",
+    "rb_ptag": "student study sticker",
+    "rb_tags_core": [
+      "studygram",
+      "student planner stickers",
+      "college stationery",
+      "academic habit tracker",
+      "study motivation",
+      "school bullet journal",
+      "study essentials"
+    ],
+    "rb_desc_single": "Level up your study sessions and academic productivity with this {name_lower} sticker sheet. Ideal for syllabus trackers, assignment logs, and student planners. Best on matte finish paper.",
+    "rb_desc_mixed": "Keep your classes, deadlines, and study schedule on track with this academic sticker pack featuring {sample_names}. Essential for college, university, and high school planners. Choose matte finish.",
+    "pin_title_single": "Studygram {name} Student Planner Stickers | Academic Bujo",
+    "pin_title_mixed": "Student Study Pack {display_title} Stickers | Studygram Deco",
+    "pin_desc_single": "Stay on top of deadlines and exam prep with this clean {name_lower} study sticker sheet. Perfect for student bullet journals and studygram layouts. #studygram #studyblr #studentplanner #stationeryaddict #bujostudy #{hashtag}sticker",
+    "pin_desc_mixed": "Organize assignments, lectures, and revision routines with this {display_title} student pack. #studyinspo #academicbujo #studentplanner #planneraddict #{hashtag}sticker"
+  },
+  "Self-Care & Wellness": {
+    "rb_title_single": "Self Care & Mental Health {name} Bujo Sticker Sheet",
+    "rb_title_mixed": "Daily Wellness & Self Care {display_title} Sticker Pack",
+    "rb_ptag": "self care planner sticker",
+    "rb_tags_core": [
+      "mental health stickers",
+      "wellness habit tracker",
+      "self care bujo",
+      "daily routines sticker",
+      "mindful journaling",
+      "health tracker",
+      "aesthetic planner"
+    ],
+    "rb_desc_single": "Prioritize your wellbeing and daily balance with this mindful {name_lower} sticker sheet. Perfect for habit trackers, mood logs, and gratitude journaling. Choose matte finish for a soft look.",
+    "rb_desc_mixed": "A gentle reminder to pause and reflect. This daily self-care sticker pack includes {sample_names} and more to support your mental health and wellness logs. Perfect for matte bullet journals.",
+    "pin_title_single": "Daily Self-Care {name} Habit Tracker Stickers | Wellness Bujo",
+    "pin_title_mixed": "Mindful Wellness {display_title} Sticker Pack | Self Care Bujo",
+    "pin_desc_single": "Track your daily habits and self-care routines with this calming {name_lower} sticker sheet. Ideal for wellness planners. #selfcareplanner #wellnessbujo #habittracker #mentalhealthstickers #{hashtag}sticker",
+    "pin_desc_mixed": "Inspire mindful planning with this {display_title} self-care sticker pack for your journal. #wellnessjournal #mindfulplanning #selfcaretracker #{hashtag}sticker"
+  },
+  "Dark Academia / Vintage": {
+    "rb_title_single": "Dark Academia {name} Vintage Journaling Sticker Sheet",
+    "rb_title_mixed": "Dark Academia {display_title} Aesthetic Sticker Pack",
+    "rb_ptag": "dark academia sticker",
+    "rb_tags_core": [
+      "dark academia aesthetic",
+      "vintage scrapbooking",
+      "classical literature bujo",
+      "gothic stationery",
+      "reading journal stickers",
+      "antique aesthetic",
+      "retro planner"
+    ],
+    "rb_desc_single": "Embrace scholarly dark academia aesthetics with this {name_lower} journal sticker sheet. Ideal for classic reading logs, wax-sealed scrapbooks, and vintage daily journals. Matte finish recommended.",
+    "rb_desc_mixed": "A moody, intellectual stationery collection featuring {sample_names}. Tailored for reading journals, literature notes, and dark academia bullet journal spreads. Matte finish.",
+    "pin_title_single": "Dark Academia {name} Journal Stickers | Vintage Bujo",
+    "pin_title_mixed": "Dark Academia Aesthetic {display_title} Stickers | Reading Journal",
+    "pin_desc_single": "Curate moody reading logs and scholarly notebooks with this {name_lower} sticker sheet. #darkacademia #darkacademiabujo #vintagejournal #readingjournal #{hashtag}sticker",
+    "pin_desc_mixed": "Moody aesthetic sticker pack for reading journals and vintage planners featuring {display_title}. #darkacademiaaesthetic #scrapbooking #booktok #{hashtag}sticker"
+  }
+}
