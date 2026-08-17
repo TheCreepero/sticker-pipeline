@@ -20,14 +20,12 @@ def load_templates(config_path: str = "config/templates.json") -> dict:
 
 
 def generate_simple_pin(
-    sheet_path: str,
+    sheet: Image.Image,
     output_dir: str,
     base_name: str,
     rotation_angle: float = -3.5
 ) -> str:
-    """Generates a clean dot-grid paper mockup pin."""
-    sheet = Image.open(sheet_path)
-
+    """Generates a clean dot-grid paper mockup pin in memory."""
     target_w = 720
     scale = target_w / sheet.width
     target_h = int(sheet.height * scale)
@@ -49,15 +47,21 @@ def generate_simple_pin(
 
 
 def generate_advanced_pin(
-    sheet_path: str,
+    sheet: Image.Image,
     output_dir: str,
     base_name: str,
-    templates: dict
-) -> str:
-    """Generates a photographic 3D perspective mockup pin if templates exist."""
+    templates: dict,
+    log_callback=None
+) -> list:
+    """Generates photographic 3D perspective mockup pins with crash protection."""
+    out_files = []
     for template_name, template_data in templates.items():
-        if os.path.exists(template_data["file"]):
-            sheet = Image.open(sheet_path)
+        if not os.path.exists(template_data["file"]):
+            if log_callback:
+                log_callback(f"    [Warning] Template image missing for '{template_name}'. Skipping.")
+            continue
+            
+        try:
             bg = Image.open(template_data["file"])
             corners = template_data["corners"]
 
@@ -66,17 +70,35 @@ def generate_advanced_pin(
             pin_filename = f"pin_adv_{template_name}_{base_name}.jpg"
             pin_path = os.path.join(output_dir, pin_filename)
             pin_img.convert("RGB").save(pin_path, quality=95)
+            out_files.append(pin_filename)
+        except Exception as e:
+            if log_callback:
+                log_callback(f"    [Error] Failed generating advanced pin for '{template_name}': {e}")
             
-            return pin_filename
-    return ""
+    return out_files
 
 
-def run_pipeline(mode: str = "all", rows: int = 3, cols: int = 3):
-    # Root working paths
+def run_pipeline(
+    gen_repeating: bool = True,
+    gen_mixed: bool = True,
+    out_sheets: bool = True,
+    out_simple: bool = True,
+    out_advanced: bool = True,
+    rows: int = 3, 
+    cols: int = 3,
+    padding: int = 320,
+    fill_ratio: float = 0.85,
+    log_callback=None
+):
+    def log(msg):
+        if log_callback:
+            log_callback(msg)
+        else:
+            print(msg)
+
     os.makedirs("assets", exist_ok=True)
     os.makedirs("source", exist_ok=True)
 
-    # Subdivided export paths
     sheets_dir = os.path.join("exports", "sheets")
     mixed_sheets_dir = os.path.join("exports", "mixed_sheets")
     pins_simple_dir = os.path.join("exports", "pins_simple")
@@ -92,48 +114,59 @@ def run_pipeline(mode: str = "all", rows: int = 3, cols: int = 3):
     item_id = len(dashboard_items) + 1
     templates = load_templates()
 
-    print(f"--- Starting pipeline (Mode: {mode} | Grid: {rows}x{cols}) ---")
+    log(f"--- Starting pipeline (Grid: {rows}x{cols}) ---")
 
     processed_any = False
 
-    # 1. Process Repeating Single Sheets from assets/
-    if mode in ["all", "repeating"]:
+    # 1. Process Repeating Single Sheets
+    if gen_repeating:
         asset_files = sorted(glob.glob("assets/*.png"))
-        print(f"--- Processing {len(asset_files)} Single Designs from 'assets/' ---")
+        log(f"Found {len(asset_files)} files in 'assets/'")
         for img_path in asset_files:
             clean_name = extract_clean_name(img_path)
             base_name = os.path.splitext(os.path.basename(img_path))[0]
             sheet_filename = f"{base_name}_sheet.png"
             sheet_path = os.path.join(sheets_dir, sheet_filename)
 
-            sheet = build_repeating_sheet(img_path, rows=rows, cols=cols)
-            sheet.save(sheet_path, "PNG")
+            sheet = build_repeating_sheet(img_path, rows=rows, cols=cols, padding=padding, cell_fill_ratio=fill_ratio)
+            
+            sheet_saved_path = ""
+            if out_sheets:
+                sheet.save(sheet_path, "PNG")
+                sheet_saved_path = f"sheets/{sheet_filename}"
 
-            simple_pin = generate_simple_pin(sheet_path, pins_simple_dir, base_name)
-            adv_pin = generate_advanced_pin(sheet_path, pins_adv_dir, base_name, templates)
+            simple_pin_path = ""
+            if out_simple:
+                simple_pin = generate_simple_pin(sheet, pins_simple_dir, base_name)
+                simple_pin_path = f"pins_simple/{simple_pin}"
+                
+            adv_pin_paths = []
+            if out_advanced:
+                adv_pins = generate_advanced_pin(sheet, pins_adv_dir, base_name, templates, log)
+                adv_pin_paths = [f"pins_advanced/{p}" for p in adv_pins]
+                
             meta = build_seo_metadata([clean_name], is_mixed=False)
 
             csv_rows.append([
-                f"sheets/{sheet_filename}", meta["rb_title"], meta["rb_ptag"], meta["rb_tags"], meta["rb_desc"],
-                f"pins_simple/{simple_pin}", f"pins_advanced/{adv_pin}" if adv_pin else "",
-                meta["pin_title"], meta["pin_desc"]
+                sheet_saved_path, meta["rb_title"], meta["rb_ptag"], meta["rb_tags"], meta["rb_desc"],
+                simple_pin_path, "|".join(adv_pin_paths), meta["pin_title"], meta["pin_desc"]
             ])
             dashboard_items.append({
                 "id": item_id,
-                "rb_filepath": f"sheets/{sheet_filename}",
-                "simple_pin_filepath": f"pins_simple/{simple_pin}",
-                "adv_pin_filepath": f"pins_advanced/{adv_pin}" if adv_pin else "",
+                "rb_filepath": sheet_saved_path,
+                "simple_pin_filepath": simple_pin_path,
+                "adv_pin_filepaths": adv_pin_paths,
                 **meta
             })
             item_id += 1
             processed_any = True
-            print(f"  ✓ Processed: {clean_name}")
+            log(f"  ✓ Processed Repeating: {clean_name}")
 
-    # 2. Process Mixed Pack Sheets from source/
-    if mode in ["all", "mixed"]:
+    # 2. Process Mixed Pack Sheets
+    if gen_mixed:
         source_files = sorted(glob.glob("source/*.png"))
         chunks = [source_files[i:i + rows] for i in range(0, len(source_files), rows)]
-        print(f"\n--- Processing {len(chunks)} Mixed Pack Sheets from 'source/' ---")
+        log(f"\nFound {len(source_files)} files in 'source/' ({len(chunks)} packs)")
         for chunk in chunks:
             names = [extract_clean_name(p) for p in chunk]
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
@@ -141,51 +174,53 @@ def run_pipeline(mode: str = "all", rows: int = 3, cols: int = 3):
             sheet_filename = f"{base_name}.png"
             sheet_path = os.path.join(mixed_sheets_dir, sheet_filename)
 
-            sheet = build_mixed_sheet(chunk, cols=cols, max_rows=rows)
-            sheet.save(sheet_path, "PNG")
+            sheet = build_mixed_sheet(chunk, cols=cols, max_rows=rows, padding=padding, cell_fill_ratio=fill_ratio)
+            
+            sheet_saved_path = ""
+            if out_sheets:
+                sheet.save(sheet_path, "PNG")
+                sheet_saved_path = f"mixed_sheets/{sheet_filename}"
 
-            simple_pin = generate_simple_pin(sheet_path, pins_simple_dir, base_name)
-            adv_pin = generate_advanced_pin(sheet_path, pins_adv_dir, base_name, templates)
+            simple_pin_path = ""
+            if out_simple:
+                simple_pin = generate_simple_pin(sheet, pins_simple_dir, base_name)
+                simple_pin_path = f"pins_simple/{simple_pin}"
+                
+            adv_pin_paths = []
+            if out_advanced:
+                adv_pins = generate_advanced_pin(sheet, pins_adv_dir, base_name, templates, log)
+                adv_pin_paths = [f"pins_advanced/{p}" for p in adv_pins]
+                
             meta = build_seo_metadata(names, is_mixed=True)
 
             csv_rows.append([
-                f"mixed_sheets/{sheet_filename}", meta["rb_title"], meta["rb_ptag"], meta["rb_tags"], meta["rb_desc"],
-                f"pins_simple/{simple_pin}", f"pins_advanced/{adv_pin}" if adv_pin else "",
-                meta["pin_title"], meta["pin_desc"]
+                sheet_saved_path, meta["rb_title"], meta["rb_ptag"], meta["rb_tags"], meta["rb_desc"],
+                simple_pin_path, "|".join(adv_pin_paths), meta["pin_title"], meta["pin_desc"]
             ])
             dashboard_items.append({
                 "id": item_id,
-                "rb_filepath": f"mixed_sheets/{sheet_filename}",
-                "simple_pin_filepath": f"pins_simple/{simple_pin}",
-                "adv_pin_filepath": f"pins_advanced/{adv_pin}" if adv_pin else "",
+                "rb_filepath": sheet_saved_path,
+                "simple_pin_filepath": simple_pin_path,
+                "adv_pin_filepaths": adv_pin_paths,
                 **meta
             })
             item_id += 1
             processed_any = True
-            print(f"  ✓ Created Mixed Sheet: {meta['rb_title']}")
+            log(f"  ✓ Created Mixed Sheet: {meta['rb_title']}")
 
     # Export Catalogs
-    if processed_any or dashboard_items:
+    if processed_any:
         save_csv(csv_rows, csv_path)
         generate_unified_html(dashboard_items, "exports/listings.html")
-        print("\n==========================================")
-        print("Pipeline Complete!")
-        print("  • Sheets Output:         'exports/sheets/'")
-        print("  • Mixed Sheets Output:   'exports/mixed_sheets/'")
-        print("  • Simple Pins Output:    'exports/pins_simple/'")
-        print("  • Advanced Pins Output:  'exports/pins_advanced/'")
-        print("  • Dashboard:             'exports/listings.html'")
-        print("  • Semicolon CSV:         'exports/listings.csv'")
-        print("==========================================")
+        log(f"[{datetime.now().strftime('%H:%M:%S')}] Pipeline Complete! Saved to 'exports/'")
     else:
-        print("No image assets found to process in 'assets/' or 'source/'.")
+        log("No files generated (check your toggle settings or input folders).")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Automated Sticker Sheet & Mockup Pipeline")
-    parser.add_argument("--mode", choices=["all", "repeating", "mixed"], default="all", help="Execution mode")
-    parser.add_argument("--rows", type=int, default=3, help="Number of rows per sheet")
-    parser.add_argument("--cols", type=int, default=3, help="Number of columns per sheet")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--rows", type=int, default=3)
+    parser.add_argument("--cols", type=int, default=3)
     args = parser.parse_args()
     
-    run_pipeline(mode=args.mode, rows=args.rows, cols=args.cols)
+    run_pipeline(rows=args.rows, cols=args.cols)
