@@ -8,7 +8,7 @@ from PIL import Image
 
 from src.grid_builder import build_repeating_sheet, build_mixed_sheet
 from src.homography import warp_sticker_to_page
-from src.image_ops import build_physical_sheet, add_drop_shadow, create_dot_grid_background
+from src.image_ops import build_physical_sheet, add_drop_shadow, create_dot_grid_background, add_cta_badge
 from src.metadata import extract_clean_name, build_seo_metadata, save_csv, generate_unified_html, load_existing_metadata, load_seo_profiles
 
 
@@ -40,11 +40,60 @@ def generate_simple_pin(
     pos_y = (1500 - rotated.height) // 2
     pin_bg.paste(rotated, (pos_x, pos_y), mask=rotated)
 
+    # Apply the CTA Badge here
+    pin_bg = add_cta_badge(pin_bg)
+
     pin_filename = f"pin_simple_{base_name}.png"
     pin_path = os.path.join(output_dir, pin_filename)
     pin_bg.convert("RGB").save(pin_path, quality=95)
     return pin_filename
 
+def process_pins(
+    sheet_path: str,
+    output_dir: str,
+    base_name: str,
+    templates: dict,
+    rotation_angle: float = -3.5
+) -> str:
+    """Generates standard dot-grid or photographic mockup pins with a CTA."""
+    sheet = Image.open(sheet_path)
+
+    # Use photographic mockup template if available
+    if "desk_mockup" in templates and os.path.exists(templates["desk_mockup"]["file"]):
+        bg = Image.open(templates["desk_mockup"]["file"])
+        corners = templates["desk_mockup"]["corners"]
+        pin_img = warp_sticker_to_page(sheet, bg, corners, apply_multiply=True)
+        
+        # Apply CTA Badge
+        pin_img = add_cta_badge(pin_img)
+        
+        pin_filename = f"pin_{base_name}.jpg"
+        pin_path = os.path.join(output_dir, pin_filename)
+        pin_img.convert("RGB").save(pin_path, quality=95)
+        return pin_filename
+
+    # Fallback to rotated dot-grid background
+    target_w = 720
+    scale = target_w / sheet.width
+    target_h = int(sheet.height * scale)
+    sheet_resized = sheet.resize((target_w, target_h), Image.Resampling.LANCZOS)
+
+    card = build_physical_sheet(sheet_resized)
+    shadowed = add_drop_shadow(card)
+    rotated = shadowed.rotate(rotation_angle, expand=True, resample=Image.BICUBIC)
+
+    pin_bg = create_dot_grid_background(width=1000, height=1500, grid_angle=0)
+    pos_x = (1000 - rotated.width) // 2
+    pos_y = (1500 - rotated.height) // 2
+    pin_bg.paste(rotated, (pos_x, pos_y), mask=rotated)
+
+    # Apply CTA Badge
+    pin_bg = add_cta_badge(pin_bg)
+
+    pin_filename = f"pin_{base_name}.png"
+    pin_path = os.path.join(output_dir, pin_filename)
+    pin_bg.convert("RGB").save(pin_path, quality=95)
+    return pin_filename
 
 def generate_advanced_pin(
     sheet: Image.Image,
@@ -66,6 +115,9 @@ def generate_advanced_pin(
             corners = template_data["corners"]
 
             pin_img = warp_sticker_to_page(sheet, bg, corners, apply_multiply=True)
+            
+            # Apply the CTA Badge here
+            pin_img = add_cta_badge(pin_img)
             
             pin_filename = f"pin_adv_{template_name}_{base_name}.jpg"
             pin_path = os.path.join(output_dir, pin_filename)
@@ -226,3 +278,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     run_pipeline(rows=args.rows, cols=args.cols, seo_profile=args.profile)
+
+    

@@ -1,4 +1,5 @@
 import numpy as np
+from PIL import ImageFont
 from PIL import Image, ImageDraw, ImageFilter
 
 
@@ -90,3 +91,59 @@ def create_dot_grid_background(
     crop_x = (diag - width) // 2
     crop_y = (diag - height) // 2
     return rotated.crop((crop_x, crop_y, crop_x + width, crop_y + height))
+
+def add_cta_badge(
+    image: Image.Image,
+    text: str = "Shop on Redbubble",
+    bg_color: tuple = (227, 20, 33, 255),  # Redbubble Red
+    text_color: tuple = (255, 255, 255, 255)
+) -> Image.Image:
+    """Overlays a clean, pill-shaped Call-To-Action badge on the bottom-left."""
+    draw = ImageDraw.Draw(image, "RGBA")
+    
+    # Dynamically scale sizes based on the background image resolution
+    base_scale = image.width
+    font_size = max(24, int(base_scale * 0.035))  # ~3.5% of image width
+    padding_x = int(base_scale * 0.04)            # ~4% of image width
+    padding_y = int(base_scale * 0.015)           # ~1.5% of image width
+    margin = int(image.width * 0.05)              # ~5% margin from the edges
+    
+    # Attempt to load Arial Bold, fallback to default if missing
+    try:
+        font = ImageFont.truetype("arialbd.ttf", font_size)
+    except IOError:
+        font = ImageFont.load_default()
+    
+    # Calculate text dimensions
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_w = bbox[2] - bbox[0]
+    text_h = bbox[3] - bbox[1]
+    
+    badge_w = text_w + padding_x * 2
+    badge_h = text_h + padding_y * 2
+    
+    # --- NEW POSITIONING: Bottom-Left Corner ---
+    x = margin
+    y = image.height - badge_h - margin
+    
+    # --- NEW DROP SHADOW ---
+    shadow_offset = max(2, int(base_scale * 0.005))
+    draw.rounded_rectangle(
+        [x + shadow_offset, y + shadow_offset, x + badge_w + shadow_offset, y + badge_h + shadow_offset],
+        radius=badge_h // 2,
+        fill=(0, 0, 0, 90) # Semi-transparent black shadow
+    )
+    
+    # Draw the pill-shaped background
+    draw.rounded_rectangle(
+        [x, y, x + badge_w, y + badge_h],
+        radius=badge_h // 2,
+        fill=bg_color
+    )
+    
+    # Draw the text perfectly centered inside the pill
+    text_x = x + padding_x
+    text_y = y + padding_y - bbox[1]
+    draw.text((text_x, text_y), text, font=font, fill=text_color)
+    
+    return image
