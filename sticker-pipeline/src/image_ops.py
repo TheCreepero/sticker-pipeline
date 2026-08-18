@@ -103,10 +103,10 @@ def add_cta_badge(
     
     # Dynamically scale sizes based on the background image resolution
     base_scale = image.width
-    font_size = max(24, int(base_scale * 0.035))  # ~3.5% of image width
-    padding_x = int(base_scale * 0.04)            # ~4% of image width
-    padding_y = int(base_scale * 0.015)           # ~1.5% of image width
-    margin = int(image.width * 0.05)              # ~5% margin from the edges
+    font_size = max(24, int(base_scale * 0.03))  # ~3.0% of image width
+    padding_x = int(base_scale * 0.035)            # ~4% of image width
+    padding_y = int(base_scale * 0.012)           # ~1.2% of image width
+    margin = int(image.width * 0.04)              # ~5% margin from the edges
     
     # Attempt to load Arial Bold, fallback to default if missing
     try:
